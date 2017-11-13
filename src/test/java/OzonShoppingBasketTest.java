@@ -2,7 +2,6 @@ import java.lang.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import io.qameta.allure.junit4.DisplayName;
 import org.junit.*;
@@ -43,8 +42,8 @@ public class OzonShoppingBasketTest {
     public void testAddAndRemoveItemsInBasket() throws Exception {
         Wait<WebDriver> wait = new WebDriverWait(driver, 30)
                 .withMessage("Element was not found")
-                .ignoring( NoSuchElementException.class, StaleElementReferenceException.class );;
-        Wait<WebDriver> waitFluent = new FluentWait<WebDriver>(driver)
+                .ignoring( NoSuchElementException.class, StaleElementReferenceException.class );
+        Wait<WebDriver> waitFluent = new FluentWait<>(driver)
                 .withTimeout( 30, TimeUnit.SECONDS )
                 .pollingEvery( 5, TimeUnit.SECONDS )
                 .ignoring( NoSuchElementException.class, StaleElementReferenceException.class );
@@ -66,7 +65,7 @@ public class OzonShoppingBasketTest {
                 "#bTilesModeShow .bOneTile:nth-child(even) .mAddToCart.mTitle.bFlatButton.js_add"));
         List <WebElement> itemsTitlesToCompare = driver.findElements(By.cssSelector(
                 "#bTilesModeShow .bOneTile:nth-child(even) .eOneTile_ItemName"));
-        ArrayList<String> listOfItemsTitlesToCompare = new ArrayList<String>();
+        ArrayList<String> listOfItemsTitlesToCompare = new ArrayList<>();
 
 
         // now add all selected goods to the basket
@@ -86,22 +85,18 @@ public class OzonShoppingBasketTest {
 
         System.out.format("Number of items in basket: %s \n", itemsInBasket.size());
 
-        // To simply compare number of items selected vs those in basket
-//        Assert.assertEquals(itemsLinksToClick.size(), itemsInBasket.size());
+        // To simply compare number of items selected vs those in basket. Test will fail if sums do not match.
+        Assert.assertEquals(itemsLinksToClick.size(), itemsInBasket.size());
 
         wait.until(ExpectedConditions.visibilityOf(driver.findElement(By.cssSelector(".bCartSplit:nth-child(n) .eCartControls_buttons .bIconButton.mRemove"))));
         List <WebElement> removeAllButtons = driver.findElements(By.cssSelector(".bCartSplit:nth-child(n) .eCartControls_buttons .bIconButton.mRemove"));
         System.out.format("removeAllButtons number: %s \n", removeAllButtons.size());
-
-
 
         // FIXME: Test is flaky in case if there 2 or more 'delete all' buttons in basket because of dynamic DOM building
         for (int i = 0; i < removeAllButtons.size(); i++){
             wait.until(ExpectedConditions.elementToBeClickable(removeAllButtons.get(i)));
             removeAllButtons.get(i).click();
         }
-
-
 
         logout();
 
