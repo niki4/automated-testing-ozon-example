@@ -9,7 +9,6 @@ import static org.junit.Assert.*;
 import org.openqa.selenium.*;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -22,6 +21,18 @@ public class OzonShoppingBasketTest {
     private String userPass;
     private String searchValue;
 
+    private By locatorSearchMainField = By.id("SearchText");
+    private By locatorEvenItemsToBasketBtn = By.cssSelector("#bTilesModeShow .bOneTile:nth-child(even) .mAddToCart.mTitle.bFlatButton.js_add");
+    private By locatorEvenItemsTitle = By.cssSelector("#bTilesModeShow .bOneTile:nth-child(even) .eOneTile_ItemName");
+    private By locatorBasketInnerSectionItems = By.cssSelector(".jsViewCollection .bCartSplit .eCartItem_nameValue:nth-child(n)");
+    private By locatorBasketRemoveAllBtn = By.cssSelector(".bCartSplit:nth-child(n) .eCartControls_buttons .bIconButton.mRemove.mGray.jsRemoveAll");
+    private By locatorUserMenu = By.cssSelector(".jsQuickPanelUserMenu");
+    private By locatorUserMenuLoginOption = By.cssSelector(".ePanelLinks_term.jsOption.jsLoginPanel");
+    private By locatorUserMenuLogoffOption = By.cssSelector(".ePanelLinks_term.jsOption.jsLogOff");
+    private By locatorUserLoginField = By.xpath("//input[@name='login']");
+    private By locatorUserPassField = By.xpath("//input[@name='Password']");
+    private By locatorUserLoginConfirmBtn = By.cssSelector(".jsLoginWindowButton");
+
     @Before
     public void setUp() throws Exception {
         // Comment the line below if you already have geckodriver in PATH system variable, otherwise
@@ -30,10 +41,14 @@ public class OzonShoppingBasketTest {
                 "C:\\AutomatedTesting\\Selenium\\geckodriver-v0.19.1-win32\\geckodriver.exe");
 
         driver = new FirefoxDriver();
+        driver.manage().timeouts().implicitlyWait(60, TimeUnit.SECONDS);
+        driver.manage().timeouts().pageLoadTimeout(60, TimeUnit.SECONDS);
+        driver.manage().window().maximize();
+
         baseURL = "https://ozon.ru";
         userLogin = "dhjtpwyq1o@dooboop.com";
         userPass = "Password!";
-        searchValue = "iPhone";
+        searchValue = "Now";
     }
 
 
@@ -43,28 +58,19 @@ public class OzonShoppingBasketTest {
         Wait<WebDriver> wait = new WebDriverWait(driver, 30)
                 .withMessage("Element was not found")
                 .ignoring( NoSuchElementException.class, StaleElementReferenceException.class );
-        Wait<WebDriver> waitFluent = new FluentWait<>(driver)
-                .withTimeout( 30, TimeUnit.SECONDS )
-                .pollingEvery( 5, TimeUnit.SECONDS )
-                .ignoring( NoSuchElementException.class, StaleElementReferenceException.class );
-
-        driver.manage().window().maximize();
-        driver.manage().timeouts().pageLoadTimeout(60, TimeUnit.SECONDS);
 
         driver.get(baseURL + '/');
 
         login();
 
-        driver.findElement(By.id("SearchText")).clear();
-        driver.findElement(By.id("SearchText")).sendKeys(searchValue);
-        driver.findElement(By.id("SearchText")).sendKeys(Keys.ENTER);
+        driver.findElement(locatorSearchMainField).clear();
+        driver.findElement(locatorSearchMainField).sendKeys(searchValue);
+        driver.findElement(locatorSearchMainField).sendKeys(Keys.ENTER);
 
 
         // get list for even (2n) items from all which are available to add to basket; nth-child(even) == 2n
-        List <WebElement> itemsLinksToClick = driver.findElements(By.cssSelector(
-                "#bTilesModeShow .bOneTile:nth-child(even) .mAddToCart.mTitle.bFlatButton.js_add"));
-        List <WebElement> itemsTitlesToCompare = driver.findElements(By.cssSelector(
-                "#bTilesModeShow .bOneTile:nth-child(even) .eOneTile_ItemName"));
+        List <WebElement> itemsLinksToClick = driver.findElements(locatorEvenItemsToBasketBtn);
+        List <WebElement> itemsTitlesToCompare = driver.findElements(locatorEvenItemsTitle);
         ArrayList<String> listOfItemsTitlesToCompare = new ArrayList<>();
 
 
@@ -80,16 +86,16 @@ public class OzonShoppingBasketTest {
         // verification over the list in basket and in itemsLinksToClick [itemsLinksToClick.get(i).getText();] + ASSERT //
         /*       List <WebElement> itemsInBasket = driver.findElements(By.cssSelector(
                 ".jsViewCollection .bCartItem:nth-child(n) .eCartItem_nameValue"));    */
-        List <WebElement> itemsInBasket = driver.findElements(By.cssSelector(
-                " .jsViewCollection .bCartSplit .eCartItem_nameValue:nth-child(n)"));
+        List <WebElement> itemsInBasket = driver.findElements(locatorBasketInnerSectionItems);
 
         System.out.format("Number of items in basket: %s \n", itemsInBasket.size());
 
         // To simply compare number of items selected vs those in basket. Test will fail if sums do not match.
         Assert.assertEquals(itemsLinksToClick.size(), itemsInBasket.size());
 
-        wait.until(ExpectedConditions.visibilityOf(driver.findElement(By.cssSelector(".bCartSplit:nth-child(n) .eCartControls_buttons .bIconButton.mRemove"))));
-        List <WebElement> removeAllButtons = driver.findElements(By.cssSelector(".bCartSplit:nth-child(n) .eCartControls_buttons .bIconButton.mRemove"));
+        wait.until(ExpectedConditions.elementToBeClickable(locatorBasketRemoveAllBtn));
+        List <WebElement> removeAllButtons = driver.findElements(locatorBasketRemoveAllBtn);
+
         System.out.format("removeAllButtons number: %s \n", removeAllButtons.size());
 
         // FIXME: Test is flaky in case if there 2 or more 'delete all' buttons in basket because of dynamic DOM building
@@ -109,23 +115,20 @@ public class OzonShoppingBasketTest {
 
 
     private void login() {
-        driver.findElement(By.cssSelector(".ePanelLinks_link.mPopupArrow")).click();
-        driver.findElement(By.cssSelector(".ePanelLinks_link.mPopupArrow div.jsLoginPanel.ePanelLinks_term.jsOption.jsClearTilesFromStorage")).click();
-        driver.findElement(By.xpath("//input[@name='login']")).sendKeys(userLogin);
-        driver.findElement(By.xpath("//input[@name='Password']")).sendKeys(userPass);
-        driver.findElement(By.xpath("//div[@class='bFlatButton mMedium jsLoginWindowButton']")).click();
-        driver.manage().timeouts().implicitlyWait(60, TimeUnit.SECONDS);
+        driver.findElement(locatorUserMenu).click();
+        driver.findElement(locatorUserMenuLoginOption).click();
+        driver.findElement(locatorUserLoginField).sendKeys(userLogin);
+        driver.findElement(locatorUserPassField).sendKeys(userPass);
+        driver.findElement(locatorUserLoginConfirmBtn).click();
     }
 
     private void logout() {
-        driver.findElement(By.cssSelector(".ePanelLinks_link.mPopupArrow")).click();
-        driver.findElement(By.cssSelector("div.jsLogOff.ePanelLinks_term.jsClearTilesFromStorage.jsOption.jsBottomPart")).click();
-        driver.manage().timeouts().implicitlyWait(60, TimeUnit.SECONDS);
+        driver.findElement(locatorUserMenu).click();
+        driver.findElement(locatorUserMenuLogoffOption).click();
     }
 
     private void openBasket() {
         driver.get(baseURL + "/context/cart/");
-        driver.manage().timeouts().pageLoadTimeout(60, TimeUnit.SECONDS);
     }
 
     @After
